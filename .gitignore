@@ -27,18 +27,19 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib60/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
+/build/
+/develop-eggs/
+/dist/
+/downloads/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
+/wheels/
+/share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -64,13 +65,15 @@ coverage.xml
 .hypothesis/
 
 # --- ML artifacts (NEVER commit these) -------------------------------------
-mlruns/
-mlartifacts/
-outputs/
-checkpoints/
-runs/
-wandb/
-artifacts/
+# Leading slashes matter: an unanchored `data/` would also swallow
+# src/forgeml/data/, which is source code.
+/mlruns/
+/mlartifacts/
+/outputs/
+/checkpoints/
+/runs/
+/wandb/
+/artifacts/
 *.ckpt
 *.pt
 *.pth
@@ -81,15 +84,13 @@ artifacts/
 *.h5
 
 # --- Data ------------------------------------------------------------------
-data/
-!data/.gitkeep
+/data/
 *.csv
 *.tsv
 *.parquet
 *.arrow
 *.jsonl
-!tests/fixtures/*.jsonl
-!tests/fixtures/*.csv
+!tests/fixtures/**
 
 # --- Hugging Face / Torch caches -------------------------------------------
 .cache/

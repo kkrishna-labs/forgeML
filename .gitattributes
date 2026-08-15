@@ -1,0 +1,26 @@
+# Normalize line endings so the repo is identical on Windows, Linux and the
+# Databricks workspace. Without this, a Windows checkout commits CRLF and every
+# diff on a Linux CI runner looks like the whole file changed.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF or cmd.exe misparses them.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary — never touch.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.safetensors binary
+*.bin   binary
+*.pt    binary
+*.parquet binary
+
+# Keep GitHub's language stats honest: notebooks/ holds Databricks source
+# files, and docs shouldn't count as code.
+notebooks/** linguist-vendored=false
+docs/**      linguist-documentation
