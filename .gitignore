@@ -1,0 +1,126 @@
+# ---------------------------------------------------------------------------
+# ForgeML — .gitignore
+# Rule of thumb: the repo holds SOURCE and CONFIG. Never weights, never data,
+# never secrets, never personal notes.
+# ---------------------------------------------------------------------------
+
+# --- Local-only workspace (personal notes, build guides, scratch) ----------
+# Everything under ignored/ stays on this machine. Nothing here reaches GitHub.
+ignored/
+_local/
+scratch/
+sandbox/
+
+# --- Secrets ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.databrickscfg
+.huggingface/
+secrets/
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib60/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual environments --------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# --- Testing / linting caches ----------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.hypothesis/
+
+# --- ML artifacts (NEVER commit these) -------------------------------------
+mlruns/
+mlartifacts/
+outputs/
+checkpoints/
+runs/
+wandb/
+artifacts/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+*.h5
+
+# --- Data ------------------------------------------------------------------
+data/
+!data/.gitkeep
+*.csv
+*.tsv
+*.parquet
+*.arrow
+*.jsonl
+!tests/fixtures/*.jsonl
+!tests/fixtures/*.csv
+
+# --- Hugging Face / Torch caches -------------------------------------------
+.cache/
+hf_cache/
+transformers_cache/
+torch_cache/
+
+# --- Databricks ------------------------------------------------------------
+.databricks/
+databricks.yml.local
+.bundle/
+
+# --- Notebooks -------------------------------------------------------------
+.ipynb_checkpoints/
+# Databricks notebooks live in notebooks/ as .py source files — those ARE tracked.
+
+# --- Editors / OS ----------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Docker ----------------------------------------------------------------
+.dockerignore.local
+
+# --- Reports generated at runtime ------------------------------------------
+reports/*.html
+reports/*.png
+reports/*.json
+!reports/.gitkeep

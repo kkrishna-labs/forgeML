@@ -1,0 +1,3 @@
+# Light dev/CI install — deliberately NO torch.
+# CI must stay under ~60s; pulling CUDA wheels would make it minutes.
+-e .[tracking,api,dev]
