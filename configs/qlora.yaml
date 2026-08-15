@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# QLoRA — base weights quantized to 4-bit NF4, LoRA adapters trained in bf16.
+#
+# Base weights shrink ~4x versus fp16. The catch: every forward pass dequantizes
+# on the fly, so training is typically SLOWER per step even though it fits in far
+# less memory. Whether that trade is worth it is the whole point of measuring.
+# ---------------------------------------------------------------------------
+extends: base.yaml
+
+training:
+  method: qlora
+  epochs: 2
+  learning_rate: 2.0e-4
+  per_device_train_batch_size: 8      # the memory you saved, spent on batch size
+  gradient_accumulation_steps: 2
+  gradient_checkpointing: true
+  optim: paged_adamw_8bit             # bitsandbytes: survives optimizer memory spikes
+  warmup_ratio: 0.03
+
+quantization:
+  enabled: true
+  bits: 4
+  quant_type: nf4                     # NF4 > FP4 for normally-distributed weights
+  double_quant: true                  # quantizes the quantization constants too
+  compute_dtype: bfloat16             # matmuls still happen in bf16
+
+lora:
+  r: 8
+  alpha: 16
+  dropout: 0.05
+  bias: none
+  task_type: CAUSAL_LM
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+tracking:
+  run_name: null
+  tags:
+    arm: qlora

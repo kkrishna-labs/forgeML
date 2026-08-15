@@ -1,0 +1,19 @@
+# ---------------------------------------------------------------------------
+# Baseline — the untuned base model.
+#
+# This trains nothing. It exists so that every later number has something to be
+# compared against. Without it the project cannot answer the only question that
+# matters: "did fine-tuning actually help?"
+# ---------------------------------------------------------------------------
+extends: base.yaml
+
+training:
+  method: full
+  epochs: 0                 # not used; the baseline notebook only evaluates
+  max_steps: 0
+
+tracking:
+  run_name: baseline-zero-shot
+  tags:
+    arm: baseline
+    trains: "false"

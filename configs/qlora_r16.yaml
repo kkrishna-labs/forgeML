@@ -1,0 +1,20 @@
+# ---------------------------------------------------------------------------
+# QLoRA sweep point: rank 16, MLP projections included.
+# The 4-bit counterpart of lora_r16.yaml, so the 2x2 grid is complete:
+#
+#            r=8        r=16
+#   LoRA     lora       lora_r16
+#   QLoRA    qlora      qlora_r16
+# ---------------------------------------------------------------------------
+extends: qlora.yaml
+
+lora:
+  r: 16
+  alpha: 32
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+tracking:
+  run_name: null
+  tags:
+    arm: qlora
+    sweep: rank

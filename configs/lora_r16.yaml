@@ -1,0 +1,19 @@
+# ---------------------------------------------------------------------------
+# LoRA sweep point: rank 16, MLP projections included.
+#
+# ~4x the trainable parameters of lora.yaml. The point of this arm is to find out
+# whether that buys quality or just VRAM — which is exactly the kind of question
+# an experiment tracker exists to answer.
+# ---------------------------------------------------------------------------
+extends: lora.yaml
+
+lora:
+  r: 16
+  alpha: 32                 # scaling held at 2.0 so rank is the only variable
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+tracking:
+  run_name: null
+  tags:
+    arm: lora
+    sweep: rank

@@ -1,0 +1,131 @@
+# ---------------------------------------------------------------------------
+# ForgeML — base configuration
+#
+# Every other config `extends` this file, so this is the single place where the
+# base model, the dataset and the evaluation protocol are defined. Changing the
+# model here changes it for the baseline, LoRA and QLoRA arms simultaneously —
+# which is exactly what keeps the comparison fair.
+# ---------------------------------------------------------------------------
+
+project: forgeml
+seed: 42
+
+model:
+  # ~0.5B params. Small enough to fine-tune on a free T4, big enough that the
+  # differences between LoRA ranks are actually measurable.
+  name: Qwen/Qwen2.5-0.5B-Instruct
+  revision: main
+  trust_remote_code: false
+  max_seq_length: 1024
+  dtype: bfloat16
+  attn_implementation: sdpa
+
+data:
+  source: databricks/databricks-dolly-15k
+  source_type: hf
+  split: train
+  version: v1.0
+  max_examples: 5000        # raise once the pipeline is proven end to end
+  seed: 42
+
+  train_ratio: 0.80
+  val_ratio: 0.10
+  test_ratio: 0.10
+
+  min_instruction_chars: 8
+  max_instruction_chars: 4000
+  min_response_chars: 1
+  max_response_chars: 4000
+  max_context_chars: 8000
+  dedupe: true
+  drop_empty_response: true
+
+  local_dir: data/processed
+
+  delta:
+    enabled: false          # flipped to true inside Databricks notebooks
+    catalog: workspace
+    schema_bronze: forgeml_bronze
+    schema_silver: forgeml_silver
+    schema_gold: forgeml_gold
+    table_raw: raw_instructions
+    table_clean: cleaned_instructions
+    table_train: train
+    table_validation: validation
+    table_test: test
+
+training:
+  method: full
+  epochs: 1
+  learning_rate: 2.0e-5     # full FT wants a small LR; LoRA overrides this
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 4      # effective batch = 16
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+  optim: adamw_torch
+  gradient_checkpointing: true
+  logging_steps: 10
+  eval_steps: 50
+  save_steps: null
+  save_total_limit: 1
+  max_steps: -1
+  seed: 42
+  output_dir: outputs
+  bf16: true
+  fp16: false
+
+quantization:
+  enabled: false
+  bits: 4
+  quant_type: nf4
+  double_quant: true
+  compute_dtype: bfloat16
+
+evaluation:
+  max_eval_samples: 200
+  metrics: [rouge_l, token_f1, exact_match]
+  primary_metric: rouge_l
+  compute_perplexity: true
+
+  latency_warmup_runs: 3
+  latency_measured_runs: 20
+  latency_prompt_tokens: 128
+  latency_new_tokens: 64
+  latency_batch_sizes: [1]
+
+  generation:
+    max_new_tokens: 256
+    do_sample: false        # greedy — evaluation must be reproducible
+    temperature: 0.7
+    top_p: 0.9
+    top_k: 50
+    repetition_penalty: 1.0
+
+  gpu_hourly_usd: 0.60      # ~T4 on-demand; documented approximation, not a quote
+  assumed_gpu: T4-16GB
+
+selection:
+  weights:
+    quality: 0.55
+    latency: 0.20
+    memory: 0.15
+    model_size: 0.05
+    cost: 0.05
+  min_quality_ratio_vs_baseline: 0.90
+  max_latency_ms: null
+  max_memory_mb: null
+  require_beats_baseline: true
+  tie_breaker: latency_ms
+
+tracking:
+  experiment_name: /Shared/forgeml
+  run_name: null            # null -> derived from config.run_slug()
+  tracking_uri: null        # null -> ./mlruns locally, workspace store on Databricks
+  registry_uri: null        # "databricks-uc" to register into Unity Catalog
+  registered_model_name: forgeml_champion
+  log_model: true
+  log_system_metrics: true
+  tags: {}

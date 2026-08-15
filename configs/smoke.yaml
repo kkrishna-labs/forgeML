@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------------------
+# Smoke test — proves the pipeline runs end to end in ~2 minutes on CPU.
+#
+# Run this FIRST, always, before burning GPU hours. It catches every wiring bug
+# (bad prompt format, missing EOS, MLflow not logging, registry name wrong)
+# without waiting an hour to discover them.
+# ---------------------------------------------------------------------------
+extends: lora.yaml
+
+model:
+  # A genuinely tiny random-init model. Output is gibberish; that is fine —
+  # we are testing plumbing, not quality.
+  name: hf-internal-testing/tiny-random-LlamaForCausalLM
+  max_seq_length: 128
+  dtype: float32
+
+data:
+  max_examples: 64
+  version: smoke
+
+training:
+  epochs: 1
+  max_steps: 4
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 1
+  gradient_checkpointing: false
+  logging_steps: 1
+  eval_steps: null
+  bf16: false
+  fp16: false
+
+lora:
+  r: 4
+  alpha: 8
+  target_modules: [q_proj, v_proj]
+
+evaluation:
+  max_eval_samples: 8
+  latency_warmup_runs: 1
+  latency_measured_runs: 3
+  latency_new_tokens: 8
+  compute_perplexity: true
+  generation:
+    max_new_tokens: 16
+
+tracking:
+  experiment_name: /Shared/forgeml-smoke
+  run_name: smoke
+  log_model: false
+  tags:
+    arm: smoke

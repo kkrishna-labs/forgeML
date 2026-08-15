@@ -1,0 +1,32 @@
+# ---------------------------------------------------------------------------
+# LoRA — base weights frozen, two small matrices trained per target layer.
+#
+# Trainable params drop by ~99%, so the LR goes UP by an order of magnitude:
+# you are training freshly initialized adapters, not nudging pretrained weights.
+# ---------------------------------------------------------------------------
+extends: base.yaml
+
+training:
+  method: lora
+  epochs: 2
+  learning_rate: 2.0e-4     # 10x the full-FT rate, and that is deliberate
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
+  warmup_ratio: 0.03
+
+lora:
+  r: 8
+  alpha: 16                 # scaling = alpha/r = 2.0
+  dropout: 0.05
+  bias: none
+  task_type: CAUSAL_LM
+  # Named explicitly rather than auto-detected so the config documents itself.
+  # Attention-only is the cheap setting; add the MLP projections to trade
+  # parameters for quality.
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+tracking:
+  run_name: null
+  tags:
+    arm: lora

@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------------------
+# Full fine-tuning — every weight is trainable.
+#
+# The reference point for "how good can this get", and the memory disaster that
+# motivates LoRA. Optimizer state alone is ~8 bytes/param for Adam (two fp32
+# moments), so a 0.5B model needs ~4 GB of optimizer state before a single
+# activation is stored.
+# ---------------------------------------------------------------------------
+extends: base.yaml
+
+training:
+  method: full
+  epochs: 1
+  learning_rate: 2.0e-5     # 10-50x smaller than LoRA: you are moving all weights
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8      # effective batch stays at 16
+  gradient_checkpointing: true
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+
+tracking:
+  run_name: null
+  tags:
+    arm: full_ft
