@@ -1,0 +1,180 @@
+# ---------------------------------------------------------------------------
+# Databricks Asset Bundle — the whole model lifecycle as one job.
+#
+# Deploy:  databricks bundle deploy --target dev
+# Run:     databricks bundle run forgeml_training_pipeline
+#
+# The dependency graph is the point. Selection cannot run before every arm has
+# finished, and registration cannot run before selection — so the pipeline
+# physically cannot register a champion chosen from a partial results table.
+# ---------------------------------------------------------------------------
+
+bundle:
+  name: forgeml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog holding the medallion schemas.
+    default: workspace
+  experiment:
+    description: MLflow experiment path.
+    default: /Shared/forgeml
+  model_name:
+    description: Registered model name (becomes catalog.forgeml_gold.<name>).
+    default: forgeml_champion
+  notebook_path:
+    description: Where the Git folder is checked out in the workspace.
+    default: /Workspace/Repos/forgeml/notebooks
+
+targets:
+  dev:
+    mode: development       # prefixes resources with [dev you] and pauses schedules
+    default: true
+    workspace:
+      host: ${workspace.host}
+
+  prod:
+    mode: production
+    workspace:
+      host: ${workspace.host}
+    resources:
+      jobs:
+        forgeml_training_pipeline:
+          schedule:
+            # Weekly retrain, Sunday 02:00 UTC. Paused until you unpause it —
+            # an unattended GPU job on a schedule is how free credits vanish.
+            quartz_cron_expression: "0 0 2 ? * SUN"
+            timezone_id: UTC
+            pause_status: PAUSED
+
+resources:
+  jobs:
+    forgeml_training_pipeline:
+      name: ForgeML Training Pipeline
+      max_concurrent_runs: 1
+      timeout_seconds: 28800     # 8h; a job stuck past this is a job that is broken
+
+      email_notifications:
+        on_failure: []           # add your address here
+
+      # ------------------------------------------------------------------
+      # Compute
+      # ------------------------------------------------------------------
+      job_clusters:
+        - job_cluster_key: cpu
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
+            num_workers: 0                      # single node: no Spark shuffle here
+            data_security_mode: SINGLE_USER
+            custom_tags:
+              ResourceClass: SingleNode
+            spark_conf:
+              spark.master: "local[*]"
+
+        - job_cluster_key: gpu
+          new_cluster:
+            spark_version: "15.4.x-gpu-ml-scala2.12"
+            node_type_id: "Standard_NC4as_T4_v3"   # T4 16GB
+            num_workers: 0
+            data_security_mode: SINGLE_USER
+            custom_tags:
+              ResourceClass: SingleNode
+            spark_conf:
+              spark.master: "local[*]"
+
+      # ------------------------------------------------------------------
+      # Tasks
+      # ------------------------------------------------------------------
+      tasks:
+        - task_key: prepare_data
+          job_cluster_key: cpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/01_data_preparation
+            base_parameters:
+              config: configs/base.yaml
+              catalog: ${var.catalog}
+              max_examples: "5000"
+
+        - task_key: baseline
+          depends_on: [{ task_key: prepare_data }]
+          job_cluster_key: gpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/02_baseline
+            base_parameters:
+              config: configs/baseline.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+
+        # The four PEFT arms are the same notebook with different configs.
+        # They depend only on prepare_data, so Databricks runs them in parallel
+        # when the workspace has the capacity — and serialises them when it does
+        # not, without the job definition needing to know which.
+        - task_key: train_lora_r8
+          depends_on: [{ task_key: prepare_data }]
+          job_cluster_key: gpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/03_train
+            base_parameters:
+              config: configs/lora.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+
+        - task_key: train_lora_r16
+          depends_on: [{ task_key: prepare_data }]
+          job_cluster_key: gpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/03_train
+            base_parameters:
+              config: configs/lora_r16.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+
+        - task_key: train_qlora_r8
+          depends_on: [{ task_key: prepare_data }]
+          job_cluster_key: gpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/03_train
+            base_parameters:
+              config: configs/qlora.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+
+        - task_key: train_qlora_r16
+          depends_on: [{ task_key: prepare_data }]
+          job_cluster_key: gpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/03_train
+            base_parameters:
+              config: configs/qlora_r16.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+
+        # The fan-in. Evaluation waits for every arm, so the comparison table is
+        # never built from a partial set of runs.
+        - task_key: evaluate
+          depends_on:
+            - { task_key: baseline }
+            - { task_key: train_lora_r8 }
+            - { task_key: train_lora_r16 }
+            - { task_key: train_qlora_r8 }
+            - { task_key: train_qlora_r16 }
+          job_cluster_key: cpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/04_evaluation
+            base_parameters:
+              config: configs/base.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+
+        - task_key: select_and_register
+          depends_on: [{ task_key: evaluate }]
+          job_cluster_key: cpu
+          notebook_task:
+            notebook_path: ${var.notebook_path}/05_model_selection
+            base_parameters:
+              config: configs/base.yaml
+              catalog: ${var.catalog}
+              experiment: ${var.experiment}
+              model_name: ${var.model_name}
+              dry_run: "false"
