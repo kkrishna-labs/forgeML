@@ -417,9 +417,13 @@ def load_config(
         _apply_dotted(tree, key, value)
 
     for env_key, env_value in os.environ.items():
-        if not env_key.startswith("FORGEML__"):
+        if not env_key.upper().startswith("FORGEML__"):
             continue
-        dotted = env_key.removeprefix("FORGEML__").replace("__", ".")
+        # Windows normalises environment variable names to upper case, so
+        # FORGEML__training__epochs arrives as FORGEML__TRAINING__EPOCHS. Every
+        # config key is lower-case snake_case, so folding the case here makes the
+        # override behave identically on Windows and on a Databricks job cluster.
+        dotted = env_key[len("FORGEML__") :].replace("__", ".").lower()
         _apply_dotted(tree, dotted, yaml.safe_load(env_value))
 
     return ForgeConfig.model_validate(tree)
