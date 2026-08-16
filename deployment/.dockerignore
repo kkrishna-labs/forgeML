@@ -1,0 +1,22 @@
+# Keep the build context small — it is uploaded to the daemon on every build.
+.git/
+.venv/
+ignored/
+_local/
+data/
+outputs/
+mlruns/
+mlartifacts/
+notebooks/
+tests/
+docs/
+demo/
+reports/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.safetensors
+*.bin
+*.pt
