@@ -58,9 +58,7 @@ def format_prompt(
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": user})
-        return tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
     if (context or "").strip():
         return _PLAIN_TEMPLATE_WITH_CONTEXT.format(

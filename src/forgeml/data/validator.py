@@ -11,8 +11,9 @@ rows, instead of the useless "cleaned: 4,812 -> 4,510".
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Iterable
+from typing import TYPE_CHECKING
 
 from forgeml.data.schema import InstructionRecord
 from forgeml.logging_utils import get_logger
@@ -142,8 +143,12 @@ def validate_records(
     report.total_kept = len(kept)
     report.category_counts = Counter(r.category or "uncategorized" for r in kept)
 
-    log.info("validation: kept %d / %d (%.1f%%)", report.total_kept,
-             report.total_input, report.keep_rate * 100)
+    log.info(
+        "validation: kept %d / %d (%.1f%%)",
+        report.total_kept,
+        report.total_input,
+        report.keep_rate * 100,
+    )
     if not report.is_healthy:
         log.warning(
             "keep rate %.1f%% is suspiciously low — check the rules before training",

@@ -82,8 +82,13 @@ def test_normalize_empty() -> None:
 def test_utility_normalizes_the_weights() -> None:
     """Scaling every weight must not change the score."""
     candidate = make("a", 0.8)
-    candidate.normalized = {"quality": 1.0, "latency": 0.5, "memory": 0.0,
-                            "model_size": 0.0, "cost": 0.0}
+    candidate.normalized = {
+        "quality": 1.0,
+        "latency": 0.5,
+        "memory": 0.0,
+        "model_size": 0.0,
+        "cost": 0.0,
+    }
     small = compute_utility(candidate, {"quality": 0.5, "latency": 0.5})
     large = compute_utility(candidate, {"quality": 50, "latency": 50})
     assert small == pytest.approx(large)
@@ -121,8 +126,7 @@ def test_highest_quality_does_not_automatically_win(config: SelectionConfig) -> 
 
 def test_quality_wins_when_the_weights_say_so(config: SelectionConfig) -> None:
     """Same candidates, different priorities, different answer — as it should be."""
-    config.weights = {"quality": 1.0, "latency": 0.0, "memory": 0.0,
-                      "model_size": 0.0, "cost": 0.0}
+    config.weights = {"quality": 1.0, "latency": 0.0, "memory": 0.0, "model_size": 0.0, "cost": 0.0}
     candidates = [
         make("baseline", 0.70, baseline=True),
         make("slow_best", 0.90, latency=600, memory=6000, size=2400),
@@ -143,9 +147,7 @@ def test_baseline_is_never_the_champion(config: SelectionConfig) -> None:
     config.require_beats_baseline = False
     config.min_quality_ratio_vs_baseline = 0.0
 
-    result = select_champion(
-        [make("baseline", 0.99, baseline=True), make("tuned", 0.80)], config
-    )
+    result = select_champion([make("baseline", 0.99, baseline=True), make("tuned", 0.80)], config)
     assert result.champion is not None
     assert result.champion.run_name == "tuned"
     assert result.baseline is not None
@@ -177,9 +179,11 @@ def test_candidate_that_does_not_beat_baseline_is_rejected(config: SelectionConf
 def test_latency_ceiling_is_enforced(config: SelectionConfig) -> None:
     config.max_latency_ms = 300
     result = select_champion(
-        [make("baseline", 0.70, baseline=True),
-         make("fast", 0.80, latency=250),
-         make("slow", 0.95, latency=500)],
+        [
+            make("baseline", 0.70, baseline=True),
+            make("fast", 0.80, latency=250),
+            make("slow", 0.95, latency=500),
+        ],
         config,
     )
     assert result.champion is not None
@@ -189,9 +193,11 @@ def test_latency_ceiling_is_enforced(config: SelectionConfig) -> None:
 def test_memory_ceiling_is_enforced(config: SelectionConfig) -> None:
     config.max_memory_mb = 2500
     result = select_champion(
-        [make("baseline", 0.70, baseline=True),
-         make("light", 0.80, memory=2000),
-         make("heavy", 0.95, memory=8000)],
+        [
+            make("baseline", 0.70, baseline=True),
+            make("light", 0.80, memory=2000),
+            make("heavy", 0.95, memory=8000),
+        ],
         config,
     )
     assert result.champion is not None
@@ -244,8 +250,10 @@ def test_identical_candidates_both_survive() -> None:
 
 def test_frontier_excludes_the_baseline(config: SelectionConfig) -> None:
     result = select_champion(
-        [make("baseline", 0.99, latency=10, memory=10, size=10, cost=0.001, baseline=True),
-         make("tuned", 0.80)],
+        [
+            make("baseline", 0.99, latency=10, memory=10, size=10, cost=0.001, baseline=True),
+            make("tuned", 0.80),
+        ],
         config,
     )
     assert "baseline" not in [c.run_name for c in result.pareto]

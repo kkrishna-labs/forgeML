@@ -70,9 +70,7 @@ def test_prompt_is_a_strict_prefix_of_the_training_example() -> None:
     """The invariant that makes completion-only loss masking correct."""
     record = {"instruction": "Explain X", "context": "ctx", "response": "Because Y."}
     prompt = format_prompt(record["instruction"], record["context"])
-    full = format_training_example(
-        record["instruction"], record["response"], record["context"]
-    )
+    full = format_training_example(record["instruction"], record["response"], record["context"])
     assert full.startswith(prompt)
 
 

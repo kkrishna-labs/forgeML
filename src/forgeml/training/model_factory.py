@@ -46,10 +46,7 @@ class ParameterCount:
         }
 
     def __str__(self) -> str:
-        return (
-            f"{self.trainable:,} trainable / {self.total:,} total "
-            f"({self.trainable_pct:.4f}%)"
-        )
+        return f"{self.trainable:,} trainable / {self.total:,} total ({self.trainable_pct:.4f}%)"
 
 
 def _torch_dtype(name: str) -> Any:
@@ -105,7 +102,9 @@ def _build_bnb_config(config: ForgeConfig) -> Any | None:
 
     log.info(
         "loading base model in 4-bit (%s, double_quant=%s, compute=%s)",
-        quant.quant_type, quant.double_quant, quant.compute_dtype,
+        quant.quant_type,
+        quant.double_quant,
+        quant.compute_dtype,
     )
     return BitsAndBytesConfig(
         load_in_4bit=True,

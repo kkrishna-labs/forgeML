@@ -120,7 +120,9 @@ class SupervisedDataset:
             log.warning(
                 "%d/%d examples had no supervised tokens after truncation and were "
                 "dropped — max_seq_length=%d may be too small",
-                dropped, len(records), max_seq_length,
+                dropped,
+                len(records),
+                max_seq_length,
             )
 
         self._log_stats()

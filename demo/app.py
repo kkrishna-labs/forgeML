@@ -33,9 +33,11 @@ RESULTS_PATH = Path(os.getenv("FORGEML_RESULTS", "reports/selection.json"))
 EXAMPLES = [
     ["Explain overfitting in machine learning.", ""],
     ["What is the difference between LoRA and full fine-tuning?", ""],
-    ["Summarise the passage in one sentence.",
-     "Quantization reduces the numerical precision of model weights. It shrinks "
-     "memory footprint and often speeds up inference, at some cost to accuracy."],
+    [
+        "Summarise the passage in one sentence.",
+        "Quantization reduces the numerical precision of model weights. It shrinks "
+        "memory footprint and often speeds up inference, at some cost to accuracy.",
+    ],
     ["Write a haiku about gradient descent.", ""],
 ]
 
@@ -64,7 +66,8 @@ def _model_card_markdown() -> str:
     lines = [
         f"### {INFO.name}",
         "",
-        "| | |", "|---|---|",
+        "| | |",
+        "|---|---|",
         f"| Base model | `{INFO.base_model}` |",
         f"| Method | {INFO.method.upper()} |",
         f"| Version | {INFO.version} |",
@@ -153,18 +156,22 @@ def build_ui() -> Any:
                 with gr.Row():
                     with gr.Column(scale=3):
                         prompt = gr.Textbox(
-                            label="Instruction", lines=3,
+                            label="Instruction",
+                            lines=3,
                             placeholder="Explain overfitting in machine learning.",
                         )
                         context = gr.Textbox(
-                            label="Context (optional)", lines=3,
+                            label="Context (optional)",
+                            lines=3,
                             placeholder="Grounding text the answer should be based on.",
                         )
                         with gr.Row():
-                            max_tokens = gr.Slider(16, 512, value=192, step=16,
-                                                   label="Max new tokens")
-                            temperature = gr.Slider(0.0, 1.5, value=0.0, step=0.1,
-                                                    label="Temperature (0 = greedy)")
+                            max_tokens = gr.Slider(
+                                16, 512, value=192, step=16, label="Max new tokens"
+                            )
+                            temperature = gr.Slider(
+                                0.0, 1.5, value=0.0, step=0.1, label="Temperature (0 = greedy)"
+                            )
                         submit = gr.Button("Generate", variant="primary")
 
                     with gr.Column(scale=2):

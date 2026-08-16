@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from forgeml.data.schema import InstructionRecord
 from forgeml.logging_utils import get_logger
@@ -76,7 +77,7 @@ def _bucket_of(record: InstructionRecord, salt: str) -> int:
     The salt is the dataset version: bumping the version reshuffles on purpose,
     which is what you want when the *task* changes rather than the row count.
     """
-    payload = f"{salt}|{record.content_hash()}".encode("utf-8")
+    payload = f"{salt}|{record.content_hash()}".encode()
     digest = hashlib.sha256(payload).hexdigest()
     return int(digest[:8], 16) % _BUCKETS
 
@@ -108,7 +109,10 @@ def split_records(
 
     log.info(
         "split (%s): train=%d validation=%d test=%d",
-        salt, len(train), len(validation), len(test),
+        salt,
+        len(train),
+        len(validation),
+        len(test),
     )
     if not validation or not test:
         log.warning(

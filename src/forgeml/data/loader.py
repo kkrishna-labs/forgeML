@@ -8,8 +8,9 @@ importable — and testable — in an environment that has neither.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any
 
 from forgeml.data.schema import InstructionRecord, normalize_record
 from forgeml.logging_utils import get_logger
@@ -44,9 +45,7 @@ def load_raw_records(config: DataConfig, spark: Any | None = None) -> list[Instr
         rows = rows[: config.max_examples]
 
     records = [normalize_record(row, i, source=config.source) for i, row in enumerate(rows)]
-    log.info(
-        "loaded %d raw records from %s (%s)", len(records), config.source, source_type
-    )
+    log.info("loaded %d raw records from %s (%s)", len(records), config.source, source_type)
     return records
 
 

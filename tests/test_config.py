@@ -44,9 +44,9 @@ def test_extends_is_transitive() -> None:
     """lora_r16 -> lora -> base. The grandparent's values must survive."""
     config = load_config(CONFIG_DIR / "lora_r16.yaml")
     assert config.lora is not None
-    assert config.lora.r == 16                      # from lora_r16
+    assert config.lora.r == 16  # from lora_r16
     assert config.lora.dropout == pytest.approx(0.05)  # from lora
-    assert config.model.max_seq_length == 1024      # from base
+    assert config.model.max_seq_length == 1024  # from base
 
 
 def test_dotted_overrides_win() -> None:

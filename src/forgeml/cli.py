@@ -131,9 +131,7 @@ def train(
     config = load_config(config_path, _parse_overrides(set_))
     source = Path(data_dir or config.data.local_dir)
     if not (source / "train.jsonl").exists():
-        raise typer.BadParameter(
-            f"no prepared data in {source} — run `forgeml data prepare` first"
-        )
+        raise typer.BadParameter(f"no prepared data in {source} — run `forgeml data prepare` first")
 
     train_records = read_jsonl(source / "train.jsonl")
     val_records = read_jsonl(source / "validation.jsonl")
@@ -272,13 +270,12 @@ def register(
     typer.echo(result.to_markdown())
 
     if result.champion is None:
-        typer.secho("\nno champion cleared the constraints — nothing registered",
-                    fg=typer.colors.YELLOW)
+        typer.secho(
+            "\nno champion cleared the constraints — nothing registered", fg=typer.colors.YELLOW
+        )
         raise typer.Exit(2)
 
-    registered = register_champion(
-        result, config.tracking.registered_model_name, dry_run=dry_run
-    )
+    registered = register_champion(result, config.tracking.registered_model_name, dry_run=dry_run)
     if registered:
         typer.secho(f"\nregistered {registered.uri}", fg=typer.colors.GREEN)
         typer.echo(f"pinned:     {registered.pinned_uri}")

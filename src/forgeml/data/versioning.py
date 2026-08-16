@@ -13,10 +13,11 @@ from __future__ import annotations
 import hashlib
 import json
 import platform
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from forgeml.data.schema import InstructionRecord
 
@@ -111,9 +112,7 @@ def _length_stats(records: Sequence[InstructionRecord]) -> dict[str, float]:
         "response_chars_p95": pct(response_lengths, 0.95),
         "total_chars_p95": pct(total_lengths, 0.95),
         "total_chars_max": float(total_lengths[-1]),
-        "pct_with_context": round(
-            100.0 * sum(1 for r in records if r.context) / len(records), 2
-        ),
+        "pct_with_context": round(100.0 * sum(1 for r in records if r.context) / len(records), 2),
     }
 
 

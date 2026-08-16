@@ -343,9 +343,7 @@ def select_champion(
 
     baseline = next((c for c in candidates if c.is_baseline), None)
     if baseline is None:
-        log.warning(
-            "no baseline candidate found — quality gates relative to baseline are skipped"
-        )
+        log.warning("no baseline candidate found — quality gates relative to baseline are skipped")
 
     _normalize_all(candidates)
     for candidate in candidates:
@@ -397,7 +395,10 @@ def _log_decision(result: SelectionResult) -> None:
     log.info("champion: %s (utility %.4f)", champion.run_name, champion.utility)
     log.info(
         "  quality %.4f | latency %.0fms | memory %.0fMB | size %.0fMB",
-        champion.quality, champion.latency_ms, champion.memory_mb, champion.model_size_mb,
+        champion.quality,
+        champion.latency_ms,
+        champion.memory_mb,
+        champion.model_size_mb,
     )
 
     gain = result.quality_gain_vs_baseline()
@@ -409,7 +410,8 @@ def _log_decision(result: SelectionResult) -> None:
     if result.challenger:
         log.info(
             "challenger: %s (utility %.4f)",
-            result.challenger.run_name, result.challenger.utility,
+            result.challenger.run_name,
+            result.challenger.utility,
         )
 
 

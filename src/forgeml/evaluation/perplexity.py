@@ -117,7 +117,9 @@ def compute_perplexity(
 
     log.info(
         "perplexity %.3f (mean token loss %.4f over %d tokens)",
-        perplexity, mean_loss, total_tokens,
+        perplexity,
+        mean_loss,
+        total_tokens,
     )
     return PerplexityResult(
         perplexity=perplexity,

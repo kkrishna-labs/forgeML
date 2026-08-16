@@ -175,14 +175,14 @@ def run_training(
 
     log.info(
         "training finished in %.1fs | %d steps | final loss %.4f",
-        elapsed, result.total_steps, result.train_loss or float("nan"),
+        elapsed,
+        result.total_steps,
+        result.train_loss or float("nan"),
     )
     return model, tokenizer, result
 
 
-def _build_training_arguments(
-    config: ForgeConfig, output_dir: Path, has_eval: bool
-) -> Any:
+def _build_training_arguments(config: ForgeConfig, output_dir: Path, has_eval: bool) -> Any:
     from transformers import TrainingArguments
 
     training = config.training

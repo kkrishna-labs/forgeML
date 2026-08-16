@@ -93,9 +93,7 @@ def test_dropped_counts_sum_to_total_dropped(
     assert sum(report.dropped_by_rule.values()) == report.total_dropped
 
 
-def test_dedupe_can_be_disabled(
-    records: list[InstructionRecord], base_config: ForgeConfig
-) -> None:
+def test_dedupe_can_be_disabled(records: list[InstructionRecord], base_config: ForgeConfig) -> None:
     base_config.data.dedupe = False
     kept, report = validate_records(records, base_config.data)
     assert report.duplicates_removed == 0
@@ -109,9 +107,7 @@ def test_report_flags_an_unhealthy_keep_rate(base_config: ForgeConfig) -> None:
 
 
 def test_control_characters_are_rejected(base_config: ForgeConfig) -> None:
-    record = InstructionRecord(
-        id="1", instruction="Explain this properly", response="ok\x07bell"
-    )
+    record = InstructionRecord(id="1", instruction="Explain this properly", response="ok\x07bell")
     kept, report = validate_records([record], base_config.data)
     assert kept == []
     assert report.dropped_by_rule["contains_control_chars"] == 1
@@ -225,7 +221,9 @@ def test_fingerprint_records_captures_splits(
     assert fingerprint.mlflow_params()["dataset.version"] == "v1.0"
 
 
-def test_fingerprints_compare(many_records: list[InstructionRecord], base_config: ForgeConfig) -> None:
+def test_fingerprints_compare(
+    many_records: list[InstructionRecord], base_config: ForgeConfig
+) -> None:
     a = fingerprint_records(many_records, base_config.data)
     b = fingerprint_records(list(reversed(many_records)), base_config.data)
     assert a.matches(b)

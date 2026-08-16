@@ -79,7 +79,8 @@ def setup_mlflow(config: ForgeConfig) -> str:
     mlflow.set_experiment(experiment_name)
     log.info(
         "mlflow tracking=%s experiment=%s",
-        mlflow.get_tracking_uri(), experiment_name,
+        mlflow.get_tracking_uri(),
+        experiment_name,
     )
     return experiment_name
 
@@ -206,9 +207,7 @@ def log_evaluation_report(report: EvaluationReport) -> None:
     log_metrics(report.as_metrics())
     log_json_artifact(report.to_dict(), "evaluation_report.json", "evaluation")
     if report.samples:
-        log_text_artifact(
-            _samples_to_markdown(report.samples), "samples.md", "evaluation"
-        )
+        log_text_artifact(_samples_to_markdown(report.samples), "samples.md", "evaluation")
 
 
 def _samples_to_markdown(samples: Sequence[dict[str, str]]) -> str:

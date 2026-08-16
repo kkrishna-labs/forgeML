@@ -68,8 +68,7 @@ def build_mlflow_callback(prefix: str = "train") -> Any:
                 try:
                     mlflow.log_metrics(payload, step=int(state.global_step))
                 except Exception as exc:  # noqa: BLE001 - never kill a run over logging
-                    log.warning("mlflow.log_metrics failed at step %s: %s",
-                                state.global_step, exc)
+                    log.warning("mlflow.log_metrics failed at step %s: %s", state.global_step, exc)
             return control
 
         @property

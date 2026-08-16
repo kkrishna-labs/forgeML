@@ -158,14 +158,14 @@ class Predictor(BasePredictor):
         self._info.parameters = sum(p.numel() for p in self.model.parameters())
         log.info(
             "predictor ready: %s on %s (%.1fM params)",
-            model_uri, self.device, self._info.parameters / 1e6,
+            model_uri,
+            self.device,
+            self._info.parameters / 1e6,
         )
 
     # -- loading -----------------------------------------------------------
 
-    def _load(
-        self, model_uri: str, base_model: str | None, load_in_4bit: bool
-    ) -> tuple[Any, Any]:
+    def _load(self, model_uri: str, base_model: str | None, load_in_4bit: bool) -> tuple[Any, Any]:
         local_path = self._materialize(model_uri)
 
         if (Path(local_path) / "adapter_config.json").exists():
@@ -199,9 +199,7 @@ class Predictor(BasePredictor):
             kwargs["device_map"] = "auto"
             self._info.quantization = "4-bit nf4"
         else:
-            kwargs["torch_dtype"] = (
-                torch.bfloat16 if self.device == "cuda" else torch.float32
-            )
+            kwargs["torch_dtype"] = torch.bfloat16 if self.device == "cuda" else torch.float32
 
         model = AutoModelForCausalLM.from_pretrained(path, **kwargs)
         if "device_map" not in kwargs:
@@ -226,9 +224,7 @@ class Predictor(BasePredictor):
         )
         base = base_model or adapter_config.get("base_model_name_or_path")
         if not base:
-            raise ValueError(
-                "adapter checkpoint does not record its base model; pass base_model="
-            )
+            raise ValueError("adapter checkpoint does not record its base model; pass base_model=")
 
         log.info("loading adapter %s on base %s", path, base)
 
@@ -244,9 +240,7 @@ class Predictor(BasePredictor):
             kwargs["device_map"] = "auto"
             self._info.quantization = "4-bit nf4"
         else:
-            kwargs["torch_dtype"] = (
-                torch.bfloat16 if self.device == "cuda" else torch.float32
-            )
+            kwargs["torch_dtype"] = torch.bfloat16 if self.device == "cuda" else torch.float32
 
         model = AutoModelForCausalLM.from_pretrained(base, **kwargs)
         model = PeftModel.from_pretrained(model, path)

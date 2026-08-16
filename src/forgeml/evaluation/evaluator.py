@@ -66,9 +66,7 @@ class EvaluationReport:
             "model_size_mb": self.model_size_mb,
             "quality": self.quality.scores,
             "perplexity": asdict(self.perplexity) if self.perplexity else None,
-            "latency": {
-                k: v for k, v in asdict(self.latency).items() if k != "raw_ms"
-            }
+            "latency": {k: v for k, v in asdict(self.latency).items() if k != "raw_ms"}
             if self.latency
             else None,
             "memory": asdict(self.memory) if self.memory else None,
@@ -153,9 +151,7 @@ def generate_predictions(
                 # Slice off the prompt so we score only what the model produced.
                 prompt_length = encoded["input_ids"].shape[1]
                 for sequence in output_ids:
-                    text = tokenizer.decode(
-                        sequence[prompt_length:], skip_special_tokens=True
-                    )
+                    text = tokenizer.decode(sequence[prompt_length:], skip_special_tokens=True)
                     predictions.append(text.strip())
 
                 if start % (batch_size * 10) == 0:
@@ -250,9 +246,7 @@ def _collect_samples(
     if not quality.per_example:
         return []
 
-    scored = [
-        (row.get(primary_metric, 0.0), i) for i, row in enumerate(quality.per_example)
-    ]
+    scored = [(row.get(primary_metric, 0.0), i) for i, row in enumerate(quality.per_example)]
     scored.sort()
     chosen = [(i, "worst") for _, i in scored[:n_worst]]
     chosen += [(i, "best") for _, i in scored[-n_best:]]

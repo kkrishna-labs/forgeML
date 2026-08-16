@@ -64,14 +64,18 @@ def build_model_card(
             f"(scaling {config.lora.scaling:.1f}), dropout={config.lora.dropout}"
         )
         if config.lora.target_modules:
-            sections.append(
-                f"- **Target modules**: `{', '.join(config.lora.target_modules)}`"
-            )
+            sections.append(f"- **Target modules**: `{', '.join(config.lora.target_modules)}`")
 
     # -- results -----------------------------------------------------------
-    sections += ["", "## Evaluation", "", f"Measured on {report.num_eval_examples} "
-                 "held-out test examples with greedy decoding.", "",
-                 "| Metric | Value |", "|---|---:|"]
+    sections += [
+        "",
+        "## Evaluation",
+        "",
+        f"Measured on {report.num_eval_examples} held-out test examples with greedy decoding.",
+        "",
+        "| Metric | Value |",
+        "|---|---:|",
+    ]
 
     for name, value in quality.items():
         sections.append(f"| {name} | {value:.4f} |")
@@ -164,20 +168,16 @@ def build_model_card(
         "",
         "## Intended use",
         "",
-        "- Short-form instruction following in English, in the style of the "
-        "training corpus.",
-        "- Demonstrating and benchmarking parameter-efficient fine-tuning "
-        "trade-offs.",
+        "- Short-form instruction following in English, in the style of the training corpus.",
+        "- Demonstrating and benchmarking parameter-efficient fine-tuning trade-offs.",
         "",
         "## Out of scope",
         "",
         "- **Factual lookup.** A model of this size hallucinates confidently. "
         "Nothing it outputs should be trusted without verification.",
         "- **Medical, legal, or financial advice.**",
-        "- **Any decision affecting a person** — hiring, credit, moderation, "
-        "safety.",
-        "- **Languages other than English**, which the training data barely "
-        "covers.",
+        "- **Any decision affecting a person** — hiring, credit, moderation, safety.",
+        "- **Languages other than English**, which the training data barely covers.",
         "",
         "## Limitations",
         "",

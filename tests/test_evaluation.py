@@ -98,7 +98,7 @@ def test_rouge_l_zero_when_disjoint() -> None:
 def test_rouge_l_weights_recall_above_precision() -> None:
     """beta=1.2 means omitting content costs more than padding it."""
     reference = "one two three four"
-    too_short = rouge_l("one two", reference)      # high precision, low recall
+    too_short = rouge_l("one two", reference)  # high precision, low recall
     too_long = rouge_l("one two three four five six", reference)  # the reverse
     assert too_long > too_short
 

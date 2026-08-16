@@ -72,8 +72,14 @@ def test_predict_returns_the_full_contract(client: TestClient) -> None:
     assert response.status_code == 200
 
     payload = response.json()
-    for key in ("model", "prediction", "latency_ms", "prompt_tokens",
-                "completion_tokens", "finish_reason"):
+    for key in (
+        "model",
+        "prediction",
+        "latency_ms",
+        "prompt_tokens",
+        "completion_tokens",
+        "finish_reason",
+    ):
         assert key in payload
     assert isinstance(payload["prediction"], str)
     assert payload["latency_ms"] >= 0
@@ -82,8 +88,7 @@ def test_predict_returns_the_full_contract(client: TestClient) -> None:
 def test_predict_accepts_optional_context(client: TestClient) -> None:
     response = client.post(
         "/predict",
-        json={"prompt": "Summarise this.", "context": "Some grounding text.",
-              "max_new_tokens": 32},
+        json={"prompt": "Summarise this.", "context": "Some grounding text.", "max_new_tokens": 32},
     )
     assert response.status_code == 200
 
@@ -98,15 +103,11 @@ def test_missing_prompt_is_422(client: TestClient) -> None:
 
 
 def test_out_of_range_parameters_are_422(client: TestClient) -> None:
-    assert client.post(
-        "/predict", json={"prompt": "hi", "max_new_tokens": 99999}
-    ).status_code == 422
-    assert client.post(
-        "/predict", json={"prompt": "hi", "temperature": -1}
-    ).status_code == 422
-    assert client.post(
-        "/predict", json={"prompt": "hi", "top_p": 0}
-    ).status_code == 422
+    assert (
+        client.post("/predict", json={"prompt": "hi", "max_new_tokens": 99999}).status_code == 422
+    )
+    assert client.post("/predict", json={"prompt": "hi", "temperature": -1}).status_code == 422
+    assert client.post("/predict", json={"prompt": "hi", "top_p": 0}).status_code == 422
 
 
 def test_malformed_json_is_422(client: TestClient) -> None:
