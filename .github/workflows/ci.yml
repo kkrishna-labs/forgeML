@@ -18,6 +18,11 @@ concurrency:
 # PEP 668 "externally managed" Python, so a system install is refused outright —
 # and a venv is what developers use locally anyway, so CI matches reality.
 #
+# `uv venv --clear` rather than `uv venv`: setup-uv already provisions a .venv
+# when given a python-version, and a bare `uv venv` refuses to overwrite it.
+# --clear makes the step idempotent regardless of what the action did first, so
+# an action upgrade cannot break the install.
+#
 # No job installs torch. The decision layer (data, metrics, selector, API
 # contracts) is deliberately torch-free so this whole workflow stays under a
 # minute; pulling CUDA wheels would make it several.
@@ -36,7 +41,7 @@ jobs:
 
       - name: Install
         run: |
-          uv venv
+          uv venv --clear
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           uv pip install -e ".[tracking,api,dev]"
 
@@ -66,7 +71,7 @@ jobs:
 
       - name: Install
         run: |
-          uv venv --python ${{ matrix.python-version }}
+          uv venv --clear --python ${{ matrix.python-version }}
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           uv pip install -e ".[tracking,api,dev]"
 
@@ -116,7 +121,7 @@ jobs:
 
       - name: Install
         run: |
-          uv venv
+          uv venv --clear
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           uv pip install -e ".[tracking,api,dev]"
 
@@ -136,7 +141,7 @@ jobs:
 
       - name: Install
         run: |
-          uv venv
+          uv venv --clear
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           uv pip install -e ".[dev]"
 
