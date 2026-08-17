@@ -115,7 +115,11 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+# No python_version pin: mypy then targets the running interpreter. Pinning 3.10
+# makes it parse dependency stubs with 3.10 syntax rules, and numpy's bundled
+# stubs use 3.12 `type` statements, which aborts the run before it checks
+# anything of ours. The 3.10 floor is enforced where it belongs instead — ruff's
+# target-version statically, and the test matrix at runtime.
 packages = ["forgeml"]
 ignore_missing_imports = true
 warn_unused_ignores = true

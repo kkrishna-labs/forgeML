@@ -22,7 +22,7 @@ def configure_logging(level: str | int | None = None) -> None:
     if _CONFIGURED:
         return
 
-    resolved = level or os.getenv("FORGEML_LOG_LEVEL", "INFO")
+    resolved: str | int = level if level is not None else os.getenv("FORGEML_LOG_LEVEL", "INFO")
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(logging.Formatter(_FORMAT, datefmt=_DATEFMT))
 

@@ -60,11 +60,14 @@ def format_prompt(
         messages.append({"role": "user", "content": user})
         return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
-    if (context or "").strip():
+    cleaned_instruction = (instruction or "").strip()
+    cleaned_context = (context or "").strip()
+
+    if cleaned_context:
         return _PLAIN_TEMPLATE_WITH_CONTEXT.format(
-            instruction=(instruction or "").strip(), context=context.strip()
+            instruction=cleaned_instruction, context=cleaned_context
         )
-    return _PLAIN_TEMPLATE.format(instruction=(instruction or "").strip())
+    return _PLAIN_TEMPLATE.format(instruction=cleaned_instruction)
 
 
 def format_training_example(

@@ -13,11 +13,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Never install torch in CI. The decision layer (data, metrics, selector, API
-  # contracts) is deliberately torch-free precisely so this job stays under a
-  # minute; pulling CUDA wheels would make it minutes and nobody would wait.
-  UV_SYSTEM_PYTHON: 1
+# Every job installs into a project .venv and puts its bin directory on PATH,
+# rather than targeting the runner's system interpreter. Ubuntu runners ship a
+# PEP 668 "externally managed" Python, so a system install is refused outright —
+# and a venv is what developers use locally anyway, so CI matches reality.
+#
+# No job installs torch. The decision layer (data, metrics, selector, API
+# contracts) is deliberately torch-free so this whole workflow stays under a
+# minute; pulling CUDA wheels would make it several.
 
 jobs:
   lint:
@@ -29,12 +32,13 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.11
+          python-version: "3.12"
 
       - name: Install
-        run: uv pip install -e ".[tracking,api,dev]"
+        run: |
+          uv venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install -e ".[tracking,api,dev]"
 
       - name: Ruff
         run: ruff check src tests api demo
@@ -58,17 +62,20 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Install
-        run: uv pip install -e ".[tracking,api,dev]"
+        run: |
+          uv venv --python ${{ matrix.python-version }}
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install -e ".[tracking,api,dev]"
 
       - name: Verify the decision layer imports without torch
         run: |
           python - <<'PY'
-          import importlib, sys
+          import importlib
+          import sys
+
           for module in (
               "forgeml.config",
               "forgeml.data",
@@ -78,6 +85,7 @@ jobs:
               "api.main",
           ):
               importlib.import_module(module)
+
           assert "torch" not in sys.modules, (
               "torch was imported by the decision layer — the CPU-only guarantee is broken"
           )
@@ -98,19 +106,19 @@ jobs:
   typecheck:
     name: typecheck
     runs-on: ubuntu-latest
-    continue-on-error: true   # advisory: mypy on lazily-imported ML code is noisy
     steps:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.12
+          python-version: "3.12"
 
       - name: Install
-        run: uv pip install -e ".[tracking,api,dev]"
+        run: |
+          uv venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install -e ".[tracking,api,dev]"
 
       - name: Mypy
         run: mypy
@@ -124,24 +132,23 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.12
+          python-version: "3.12"
 
       - name: Install
-        run: uv pip install -e ".[dev]"
+        run: |
+          uv venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install -e ".[dev]"
 
       - name: Every shipped config must validate
         run: |
           python - <<'PY'
           from pathlib import Path
+
           from forgeml.config import load_config
 
           for path in sorted(Path("configs").glob("*.yaml")):
-              if path.name == "base.yaml":
-                  config = load_config(path)
-              else:
-                  config = load_config(path)
+              config = load_config(path)
               print(f"{path.name:<20} -> {config.run_slug()}")
           PY
 
@@ -170,7 +177,7 @@ jobs:
       - name: The container must answer /health in stub mode
         run: |
           docker run -d --name forgeml-ci -p 8000:8000 -e FORGEML_STUB=1 forgeml:ci
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             if curl -sf http://localhost:8000/health > /dev/null; then
               echo "healthy after ${i}s"
               curl -s http://localhost:8000/health

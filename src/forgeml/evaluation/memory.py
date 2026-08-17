@@ -101,10 +101,17 @@ def host_rss_mb() -> float:
     except ImportError:
         pass
 
+    # os.sysconf does not exist on Windows, hence getattr rather than a direct
+    # call — a bare os.sysconf(...) is an AttributeError there and a type error
+    # in any checker running on Windows.
+    sysconf = getattr(os, "sysconf", None)
+    if sysconf is None:
+        return 0.0
+
     try:
         with open(f"/proc/{os.getpid()}/statm", encoding="utf-8") as fh:
             pages = int(fh.read().split()[1])
-        return pages * os.sysconf("SC_PAGE_SIZE") / 1024**2
+        return pages * sysconf("SC_PAGE_SIZE") / 1024**2
     except Exception:  # noqa: BLE001
         return 0.0
 
@@ -126,24 +133,26 @@ def track_peak_memory() -> Iterator[dict[str, float]]:
 
     try:
         import torch
-
-        cuda = torch.cuda.is_available()
     except ImportError:  # pragma: no cover
-        cuda = False
-        torch = None  # type: ignore[assignment]
+        # No torch means no CUDA counters. Yield zeros rather than raising, so
+        # callers never have to special-case a CPU-only environment.
+        yield stats
+        return
 
-    if cuda:
-        gc.collect()
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+    if not torch.cuda.is_available():
+        yield stats
+        return
+
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
 
     try:
         yield stats
     finally:
-        if cuda:
-            torch.cuda.synchronize()
-            stats["peak_allocated_mb"] = torch.cuda.max_memory_allocated() / 1024**2
-            stats["peak_reserved_mb"] = torch.cuda.max_memory_reserved() / 1024**2
+        torch.cuda.synchronize()
+        stats["peak_allocated_mb"] = torch.cuda.max_memory_allocated() / 1024**2
+        stats["peak_reserved_mb"] = torch.cuda.max_memory_reserved() / 1024**2
 
 
 def measure_inference_memory(
