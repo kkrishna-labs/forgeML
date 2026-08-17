@@ -60,7 +60,15 @@ def _load_from_huggingface(config: DataConfig) -> list[dict[str, Any]]:
             '    uv pip install -e ".[train]"'
         ) from exc
 
-    dataset = load_dataset(config.source, split=config.split)
+    try:
+        dataset = load_dataset(config.source, split=config.split)
+    except Exception as exc:  # noqa: BLE001 - any failure here is worth retrying
+        log.warning(
+            "load_dataset failed (%s: %s) — falling back to a direct file download",
+            type(exc).__name__,
+            exc,
+        )
+        return _load_from_hub_files(config)
 
     # Shuffle before truncating, otherwise `max_examples` slices off whichever
     # category happens to sit at the top of the file and the subsample is biased.
@@ -69,6 +77,85 @@ def _load_from_huggingface(config: DataConfig) -> list[dict[str, Any]]:
         dataset = dataset.select(range(min(config.max_examples, len(dataset))))
 
     return [dict(row) for row in dataset]
+
+
+def _load_from_hub_files(config: DataConfig) -> list[dict[str, Any]]:
+    """Download the dataset's data files and parse them directly.
+
+    ``load_dataset`` drags in fsspec plus huggingface_hub's filesystem layer, and
+    a version skew between those three is a recurring failure on managed runtimes
+    that ship their own pinned copies. On Databricks it surfaces as::
+
+        TypeError: HfFileSystem.find() got multiple values for keyword 'maxdepth'
+
+    which says nothing about the real cause. Most instruction datasets are just a
+    handful of JSONL or Parquet files, so when the machinery breaks we can fetch
+    them and read them ourselves — no fsspec, no dataset scripts, no cache layer.
+
+    This is a fallback, not the default: ``load_dataset`` still handles configs,
+    multi-split repos and streaming properly, and we want that when it works.
+    """
+    import random
+
+    from huggingface_hub import HfApi, hf_hub_download
+
+    repo_files = HfApi().list_repo_files(config.source, repo_type="dataset")
+    data_files = [f for f in repo_files if f.endswith((".jsonl", ".json", ".parquet"))]
+
+    # Prefer files whose name mentions the split we asked for; many repos are a
+    # single unsplit file, in which case take everything and split it ourselves.
+    split_files = [f for f in data_files if config.split in Path(f).stem.lower()]
+    chosen = split_files or data_files
+
+    if not chosen:
+        raise RuntimeError(
+            f"no .jsonl/.json/.parquet data files found in {config.source}. "
+            f"Repo contains: {repo_files[:20]}"
+        )
+
+    log.info("downloading %d data file(s) from %s: %s", len(chosen), config.source, chosen)
+
+    rows: list[dict[str, Any]] = []
+    for filename in sorted(chosen):
+        local = hf_hub_download(config.source, filename, repo_type="dataset")
+        rows.extend(_read_data_file(Path(local)))
+
+    # Same order of operations as the load_dataset path: shuffle, then truncate.
+    #
+    # But NOT the same shuffle. datasets uses its own permutation, so with a
+    # `max_examples` cap the two paths select different subsets from the same
+    # source — and therefore produce different dataset fingerprints. That is
+    # exactly the kind of silent divergence the fingerprint exists to catch, so
+    # say it out loud rather than letting someone wonder why the hash moved.
+    random.Random(config.seed).shuffle(rows)
+    if config.max_examples is not None:
+        rows = rows[: config.max_examples]
+        log.warning(
+            "fallback loader used with max_examples=%d — this subsamples differently "
+            "from load_dataset, so the dataset fingerprint will NOT match a run that "
+            "loaded normally. Compare only runs that took the same path.",
+            config.max_examples,
+        )
+
+    return rows
+
+
+def _read_data_file(path: Path) -> list[dict[str, Any]]:
+    """Read one JSONL, JSON or Parquet file into plain dicts."""
+    import pandas as pd
+
+    if path.suffix == ".parquet":
+        return pd.read_parquet(path).to_dict(orient="records")
+
+    if path.suffix == ".jsonl":
+        return _load_from_jsonl(str(path))
+
+    # .json is ambiguous: either a JSON array or JSONL with the wrong extension.
+    text = path.read_text(encoding="utf-8").strip()
+    if text.startswith("["):
+        payload = json.loads(text)
+        return [row for row in payload if isinstance(row, dict)]
+    return _load_from_jsonl(str(path))
 
 
 def _load_from_jsonl(path: str) -> list[dict[str, Any]]:

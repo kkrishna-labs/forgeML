@@ -15,8 +15,25 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet "pydantic>=2.6" "pyyaml>=6.0" "datasets>=2.20"
+# MAGIC %pip install --quiet --upgrade "pydantic>=2.6" "pyyaml>=6.0" "datasets>=3.0" "huggingface_hub>=0.34" "fsspec>=2024.10"
 # MAGIC %restart_python
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Note that `datasets`, `huggingface_hub` and `fsspec` are upgraded *together*.
+# MAGIC Upgrading only `datasets` leaves the runtime's older pinned `huggingface_hub`
+# MAGIC in place, and the mismatch surfaces later as:
+# MAGIC
+# MAGIC ```
+# MAGIC TypeError: HfFileSystem.find() got multiple values for keyword 'maxdepth'
+# MAGIC ```
+# MAGIC
+# MAGIC which points at neither the real cause nor the fix. A partial upgrade of a
+# MAGIC tightly-coupled trio is worse than no upgrade at all.
+# MAGIC
+# MAGIC If it still fails, the loader falls back to downloading the data files
+# MAGIC directly and parsing them itself — no fsspec involved.
 
 # COMMAND ----------
 

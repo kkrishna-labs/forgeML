@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 
 from forgeml.config import ForgeConfig
-from forgeml.data.loader import read_jsonl, write_jsonl
+from forgeml.data.loader import _read_data_file, read_jsonl, write_jsonl
 from forgeml.data.schema import InstructionRecord, clean_text, normalize_record
 from forgeml.data.splitter import split_records
 from forgeml.data.validator import validate_records
@@ -232,6 +232,43 @@ def test_fingerprints_compare(
 # ---------------------------------------------------------------------------
 # io
 # ---------------------------------------------------------------------------
+
+
+def test_read_data_file_handles_jsonl(tmp_path) -> None:
+    path = tmp_path / "data.jsonl"
+    path.write_text(
+        '{"instruction": "a", "response": "b"}\n{"instruction": "c", "response": "d"}\n',
+        encoding="utf-8",
+    )
+    rows = _read_data_file(path)
+    assert rows == [
+        {"instruction": "a", "response": "b"},
+        {"instruction": "c", "response": "d"},
+    ]
+
+
+def test_read_data_file_handles_a_json_array(tmp_path) -> None:
+    path = tmp_path / "data.json"
+    path.write_text('[{"instruction": "a", "response": "b"}]', encoding="utf-8")
+    assert _read_data_file(path) == [{"instruction": "a", "response": "b"}]
+
+
+def test_read_data_file_handles_jsonl_mislabelled_as_json(tmp_path) -> None:
+    """Plenty of Hub repos ship line-delimited JSON with a .json extension."""
+    path = tmp_path / "data.json"
+    path.write_text(
+        '{"instruction": "a", "response": "b"}\n{"instruction": "c", "response": "d"}\n',
+        encoding="utf-8",
+    )
+    assert len(_read_data_file(path)) == 2
+
+
+def test_read_data_file_handles_parquet(tmp_path) -> None:
+    import pandas as pd
+
+    path = tmp_path / "data.parquet"
+    pd.DataFrame([{"instruction": "a", "response": "b"}]).to_parquet(path)
+    assert _read_data_file(path) == [{"instruction": "a", "response": "b"}]
 
 
 def test_jsonl_round_trip(many_records: list[InstructionRecord], tmp_path) -> None:
