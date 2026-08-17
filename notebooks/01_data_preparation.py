@@ -159,20 +159,30 @@ for name, table in (
 fingerprint = fingerprint_records(clean, config.data, splits)
 print(json.dumps(fingerprint.to_dict(), indent=2))
 
-# Written where the training notebooks can read it without re-deriving anything.
+# Persist a copy where it can be read without re-deriving anything.
+#
+# A Volume is the file store in Unity Catalog, and `dbutils.fs.mkdirs` will not
+# conjure one — it fails with UC_VOLUME_NOT_FOUND. Create it explicitly, the same
+# way the schemas are created above: a notebook that already provisions its own
+# schemas should not then require a manual setup step it could do itself.
+volume = f"{delta.catalog}.{delta.schema_gold}.artifacts"
 output_dir = f"/Volumes/{delta.catalog}/{delta.schema_gold}/artifacts"
+
 try:
-    dbutils.fs.mkdirs(output_dir)
+    spark.sql(f"CREATE VOLUME IF NOT EXISTS {volume}")
     dbutils.fs.put(
         f"{output_dir}/fingerprint_{config.data.version}.json",
         json.dumps(fingerprint.to_dict(), indent=2),
         overwrite=True,
     )
     print(f"fingerprint -> {output_dir}")
-except Exception as exc:
-    # Free Edition workspaces may not expose Volumes; the Delta tables are the
-    # source of truth regardless, so this is not fatal.
-    print(f"could not write to a Volume ({exc}); fingerprint lives in the task output")
+except Exception as exc:  # noqa: BLE001
+    # Not fatal, and deliberately so. The gold tables are the source of truth,
+    # notebook 03 recomputes this hash from them, and it is returned in the
+    # notebook exit value either way. Some workspace configurations do not allow
+    # creating Volumes, and that should not fail an otherwise good data run.
+    print(f"could not write to Volume {volume} ({type(exc).__name__}: {exc})")
+    print("not fatal — the gold tables are the source of truth and the hash is below")
 
 dbutils.notebook.exit(
     json.dumps(
