@@ -208,7 +208,7 @@ def build_ui() -> Any:
                     "   -> model registry    (@champion alias)\n"
                     "   -> this API\n"
                     "```\n\n"
-                    "Source: https://github.com/kkrishna-labs/forgeml"
+                    "Source: https://github.com/kkrishna-labs/forgeML"
                 )
 
     return demo

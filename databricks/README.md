@@ -30,7 +30,7 @@ why the public demo lives elsewhere.
 
 Workspace → **Repos** → Add repo → paste the GitHub URL.
 
-This checks the code out at `/Workspace/Repos/forgeml`, which is the path every
+This checks the code out at `/Workspace/Repos/forgeML`, which is the path every
 notebook adds to `sys.path`. Nothing is installed; the package is imported
 straight from source, so a `git pull` in the Git folder is the entire deploy
 step for code changes.

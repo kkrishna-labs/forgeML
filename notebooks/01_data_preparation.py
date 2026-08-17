@@ -24,7 +24,7 @@ import sys
 
 # The repo is checked out into the workspace via Databricks Git folders, so the
 # package is importable straight from source — no wheel build, no install step.
-REPO_ROOT = "/Workspace/Repos/forgeml"
+REPO_ROOT = "/Workspace/Repos/forgeML"
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, f"{REPO_ROOT}/src")
 

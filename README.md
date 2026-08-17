@@ -6,7 +6,7 @@
 
 Not an application — ML infrastructure.
 
-[![CI](https://github.com/kkrishna-labs/forgeml/actions/workflows/ci.yml/badge.svg)](https://github.com/kkrishna-labs/forgeml/actions/workflows/ci.yml)
+[![CI](https://github.com/kkrishna-labs/forgeML/actions/workflows/ci.yml/badge.svg)](https://github.com/kkrishna-labs/forgeML/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -86,7 +86,7 @@ See [`docs/experiments.md`](docs/experiments.md) for the methodology and
 ## Quickstart
 
 ```bash
-git clone https://github.com/kkrishna-labs/forgeml && cd forgeml
+git clone https://github.com/kkrishna-labs/forgeML && cd forgeML
 ```
 
 ```bash

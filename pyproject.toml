@@ -75,8 +75,8 @@ all = ["forgeml[tracking,train,api,demo,dev]"]
 forgeml = "forgeml.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/kkrishna-labs/forgeml"
-Repository = "https://github.com/kkrishna-labs/forgeml"
+Homepage = "https://github.com/kkrishna-labs/forgeML"
+Repository = "https://github.com/kkrishna-labs/forgeML"
 
 [tool.setuptools.packages.find]
 where = ["src"]

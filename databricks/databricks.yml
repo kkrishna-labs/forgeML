@@ -24,7 +24,7 @@ variables:
     default: forgeml_champion
   notebook_path:
     description: Where the Git folder is checked out in the workspace.
-    default: /Workspace/Repos/forgeml/notebooks
+    default: /Workspace/Repos/forgeML/notebooks
 
 targets:
   dev:

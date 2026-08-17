@@ -21,7 +21,7 @@
 
 import sys
 
-REPO_ROOT = "/Workspace/Repos/forgeml"
+REPO_ROOT = "/Workspace/Repos/forgeML"
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, f"{REPO_ROOT}/src")
 

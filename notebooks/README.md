@@ -28,7 +28,7 @@ so they differ only in configuration here too.
 ## Running them
 
 Attach the repo as a **Git folder** (Workspace → Repos → Add repo) so
-`/Workspace/Repos/forgeml/src` is importable. Every notebook puts that on
+`/Workspace/Repos/forgeML/src` is importable. Every notebook puts that on
 `sys.path` in its second cell; adjust `REPO_ROOT` if you clone it elsewhere.
 
 Then either run them in order by hand, or deploy the job:
