@@ -20,13 +20,9 @@
 
 # COMMAND ----------
 
-import sys
+# MAGIC %run ./_bootstrap
 
-# The repo is checked out into the workspace via Databricks Git folders, so the
-# package is importable straight from source — no wheel build, no install step.
-REPO_ROOT = "/Workspace/Repos/forgeML"
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, f"{REPO_ROOT}/src")
+# COMMAND ----------
 
 dbutils.widgets.text("config", "configs/base.yaml", "Config path")
 dbutils.widgets.text("catalog", "workspace", "Unity Catalog catalog")

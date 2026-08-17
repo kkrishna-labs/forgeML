@@ -23,7 +23,12 @@ variables:
     description: Registered model name (becomes catalog.forgeml_gold.<name>).
     default: forgeml_champion
   notebook_path:
-    description: Where the Git folder is checked out in the workspace.
+    # Job tasks need a literal path — unlike the notebooks, which derive their
+    # own root via %run ./_bootstrap, a task has no calling notebook to derive
+    # from. Databricks places Git folders differently per workspace vintage, so
+    # check yours and override at deploy time:
+    #   databricks bundle deploy --var notebook_path=/Workspace/Users/<you>/forgeML/notebooks
+    description: Workspace path to the notebooks directory of the Git folder.
     default: /Workspace/Repos/forgeML/notebooks
 
 targets:

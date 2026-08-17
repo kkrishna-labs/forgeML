@@ -30,10 +30,27 @@ why the public demo lives elsewhere.
 
 Workspace → **Repos** → Add repo → paste the GitHub URL.
 
-This checks the code out at `/Workspace/Repos/forgeML`, which is the path every
-notebook adds to `sys.path`. Nothing is installed; the package is imported
-straight from source, so a `git pull` in the Git folder is the entire deploy
-step for code changes.
+Nothing is installed; the package is imported straight from source, so a
+`git pull` in the Git folder is the entire deploy step for code changes.
+
+**You do not need to know where the checkout landed.** Databricks puts Git
+folders under `/Workspace/Repos/<repo>`, `/Workspace/Repos/<email>/<repo>` or
+`/Workspace/Users/<email>/<repo>` depending on workspace vintage, so every
+notebook runs `%run ./_bootstrap`, which derives the root from its own path and
+verifies the package is really there.
+
+The **job** definition is the one place that still needs a literal path, because
+a job task has no calling notebook to derive from. Find yours:
+
+```python
+print(dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
+```
+
+then pass it at deploy time:
+
+```bash
+databricks bundle deploy --target dev --var notebook_path=/Workspace/Users/<you>/forgeML/notebooks
+```
 
 ## 3. Catalog and schemas
 

@@ -27,9 +27,24 @@ so they differ only in configuration here too.
 
 ## Running them
 
-Attach the repo as a **Git folder** (Workspace → Repos → Add repo) so
-`/Workspace/Repos/forgeML/src` is importable. Every notebook puts that on
-`sys.path` in its second cell; adjust `REPO_ROOT` if you clone it elsewhere.
+Attach the repo as a **Git folder** (Workspace → Repos → Add repo). Nothing is
+installed; the package is imported straight from source.
+
+You do **not** need to configure where it landed. Every notebook runs
+`%run ./_bootstrap`, which derives the repo root from the calling notebook's own
+path and verifies `src/forgeml/__init__.py` is really there before trusting it.
+
+That matters because Databricks puts Git folders in different places depending
+on workspace vintage:
+
+```
+/Workspace/Repos/<repo>             legacy, unscoped
+/Workspace/Repos/<email>/<repo>     legacy, user-scoped
+/Workspace/Users/<email>/<repo>     current default
+```
+
+A hardcoded path works on one of those and fails with
+`ModuleNotFoundError: No module named 'forgeml'` on the others.
 
 Then either run them in order by hand, or deploy the job:
 
