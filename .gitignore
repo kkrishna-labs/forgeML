@@ -52,6 +52,12 @@ env/
 ENV/
 .conda/
 
+# uv writes this in project mode. We install with `uv pip install -e ".[...]"`,
+# which never reads it, so a committed lockfile would go stale unnoticed and
+# claim a reproducibility guarantee nothing actually enforces. Adopting it means
+# moving the whole workflow to `uv sync` — a deliberate change, not a side effect.
+uv.lock
+
 # --- Testing / linting caches ----------------------------------------------
 .pytest_cache/
 .ruff_cache/

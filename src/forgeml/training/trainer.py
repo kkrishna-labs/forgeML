@@ -8,6 +8,7 @@ comparison means something.
 
 from __future__ import annotations
 
+import math
 import shutil
 import time
 from collections.abc import Sequence
@@ -125,7 +126,8 @@ def run_training(
         },
     )
 
-    args = _build_training_arguments(config, output_dir, eval_dataset is not None)
+    total_steps = _total_optimizer_steps(config, len(train_dataset))
+    args = _build_training_arguments(config, output_dir, eval_dataset is not None, total_steps)
     callback = build_mlflow_callback() if log_to_mlflow else None
 
     trainer = Trainer(
@@ -182,7 +184,31 @@ def run_training(
     return model, tokenizer, result
 
 
-def _build_training_arguments(config: ForgeConfig, output_dir: Path, has_eval: bool) -> Any:
+def _total_optimizer_steps(config: ForgeConfig, num_examples: int) -> int:
+    """How many optimizer steps this run will take.
+
+    Needed to express warmup in absolute steps — see ``_build_training_arguments``.
+    Counts *optimizer* steps, so gradient accumulation is already divided out.
+    """
+    if config.training.max_steps > 0:
+        return config.training.max_steps
+
+    steps_per_epoch = math.ceil(num_examples / config.training.effective_batch_size)
+    return max(1, math.ceil(steps_per_epoch * config.training.epochs))
+
+
+def _training_argument_names() -> set[str]:
+    """Parameter names accepted by the installed ``TrainingArguments``."""
+    import inspect
+
+    from transformers import TrainingArguments
+
+    return set(inspect.signature(TrainingArguments.__init__).parameters)
+
+
+def _build_training_arguments(
+    config: ForgeConfig, output_dir: Path, has_eval: bool, total_steps: int
+) -> Any:
     from transformers import TrainingArguments
 
     training = config.training
@@ -195,7 +221,6 @@ def _build_training_arguments(config: ForgeConfig, output_dir: Path, has_eval: b
         "per_device_train_batch_size": training.per_device_train_batch_size,
         "per_device_eval_batch_size": training.per_device_eval_batch_size,
         "gradient_accumulation_steps": training.gradient_accumulation_steps,
-        "warmup_ratio": training.warmup_ratio,
         "weight_decay": training.weight_decay,
         "lr_scheduler_type": training.lr_scheduler_type,
         "max_grad_norm": training.max_grad_norm,
@@ -213,6 +238,15 @@ def _build_training_arguments(config: ForgeConfig, output_dir: Path, has_eval: b
         "logging_first_step": True,
         "disable_tqdm": False,
     }
+
+    # transformers 4.x takes `warmup_ratio`; 5.x removed it in favour of absolute
+    # `warmup_steps`. Supporting both matters here rather than pinning: Databricks
+    # ML runtimes ship 4.x, while a fresh pip install now resolves to 5.x, and the
+    # schedule these produce is identical.
+    if "warmup_ratio" in _training_argument_names():
+        kwargs["warmup_ratio"] = training.warmup_ratio
+    else:
+        kwargs["warmup_steps"] = round(training.warmup_ratio * total_steps)
 
     if training.save_steps:
         kwargs["save_steps"] = training.save_steps

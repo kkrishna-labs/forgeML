@@ -158,6 +158,39 @@ def test_dump_config_round_trips(lora_config: ForgeConfig, tmp_path) -> None:
     assert reloaded.model_dump() == lora_config.model_dump()
 
 
+def test_total_optimizer_steps_divides_out_accumulation() -> None:
+    """Warmup is expressed in absolute steps on transformers 5.x, so this count
+    determines the actual schedule — not just a progress bar."""
+    from forgeml.training.trainer import _total_optimizer_steps
+
+    config = ForgeConfig.model_validate(
+        {
+            "training": {
+                "per_device_train_batch_size": 4,
+                "gradient_accumulation_steps": 4,  # effective batch 16
+                "epochs": 2,
+            }
+        }
+    )
+    # 100 examples / 16 per step = 7 steps per epoch (rounded up), x2 epochs
+    assert _total_optimizer_steps(config, num_examples=100) == 14
+
+
+def test_total_optimizer_steps_respects_max_steps() -> None:
+    from forgeml.training.trainer import _total_optimizer_steps
+
+    config = ForgeConfig.model_validate({"training": {"max_steps": 4, "epochs": 99}})
+    assert _total_optimizer_steps(config, num_examples=100_000) == 4
+
+
+def test_total_optimizer_steps_never_returns_zero() -> None:
+    """A zero would make warmup_steps zero and, worse, divide-by-zero a scheduler."""
+    from forgeml.training.trainer import _total_optimizer_steps
+
+    config = ForgeConfig.model_validate({"training": {"epochs": 1}})
+    assert _total_optimizer_steps(config, num_examples=1) >= 1
+
+
 def test_circular_extends_is_detected(tmp_path) -> None:
     (tmp_path / "a.yaml").write_text("extends: b.yaml\nproject: a\n", encoding="utf-8")
     (tmp_path / "b.yaml").write_text("extends: a.yaml\nproject: b\n", encoding="utf-8")

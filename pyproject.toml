@@ -130,6 +130,30 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
 
+[[tool.mypy.overrides]]
+# Treat the ML stack as untyped whether or not it is installed.
+#
+# Without this, mypy's verdict depends on the environment: CI installs no torch
+# and sees Any, while a training box type-checks against stubs that disagree
+# with the documented runtime API — transformers 5 types from_pretrained's first
+# argument as PreTrainedModel rather than a path, and PeftModel is not
+# assignable to the base model type even though reassigning it is exactly what
+# the PEFT docs tell you to do.
+#
+# The same code producing two different verdicts is worse than no verdict, so
+# pin the behaviour to the one CI sees. Our own code is still fully checked.
+module = [
+  "torch.*",
+  "transformers.*",
+  "peft.*",
+  "datasets.*",
+  "accelerate.*",
+  "trl.*",
+  "bitsandbytes.*",
+  "mlflow.*",
+]
+follow_imports = "skip"
+
 [tool.coverage.run]
 source = ["src/forgeml"]
 omit = ["*/notebooks/*"]

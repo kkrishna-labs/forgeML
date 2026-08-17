@@ -53,8 +53,11 @@ def _load_from_huggingface(config: DataConfig) -> list[dict[str, Any]]:
     try:
         from datasets import load_dataset
     except ImportError as exc:  # pragma: no cover
+        # Deliberately the editable form: forgeml is not published to PyPI, so
+        # `pip install 'forgeml[train]'` fails with an unhelpful resolver error.
         raise ImportError(
-            "source_type='hf' needs the datasets library: pip install 'forgeml[train]'"
+            "source_type='hf' needs the datasets library. From the repo root:\n"
+            '    uv pip install -e ".[train]"'
         ) from exc
 
     dataset = load_dataset(config.source, split=config.split)
