@@ -108,6 +108,11 @@ ignore = [
 minversion = "8.0"
 testpaths = ["tests"]
 addopts = "-ra -q --strict-markers"
+# Put the repo root on sys.path so `api` and `tests.conftest` are importable.
+# `python -m pytest` adds the cwd implicitly and the `pytest` console script
+# does not, so without this the suite passes locally and fails in CI. Declaring
+# it here makes both invocations behave identically.
+pythonpath = ["."]
 markers = [
   "gpu: requires a CUDA GPU (skipped in CI)",
   "slow: takes more than a few seconds",
