@@ -196,3 +196,38 @@ def test_circular_extends_is_detected(tmp_path) -> None:
     (tmp_path / "b.yaml").write_text("extends: a.yaml\nproject: b\n", encoding="utf-8")
     with pytest.raises(ValueError, match="circular"):
         load_config(tmp_path / "a.yaml")
+
+
+def test_workspace_experiment_path_survives_a_remote_gpu(monkeypatch) -> None:
+    """Training on Colab while tracking to Databricks must keep the absolute path.
+
+    Databricks rejects a non-absolute experiment name outright, so mangling
+    /Shared/forgeml to Shared-forgeml because the GPU is elsewhere fails the run.
+    Compute location and tracking location are independent.
+    """
+    import mlflow
+
+    from forgeml.tracking import mlflow_utils
+
+    monkeypatch.delenv("DATABRICKS_RUNTIME_VERSION", raising=False)  # not on DB compute
+    monkeypatch.setattr(mlflow, "get_tracking_uri", lambda: "databricks")
+    monkeypatch.setattr(mlflow, "set_experiment", lambda name: None)
+    monkeypatch.setattr(mlflow, "set_tracking_uri", lambda uri: None)
+
+    config = load_config(CONFIG_DIR / "lora.yaml")
+    assert mlflow_utils.setup_mlflow(config) == "/Shared/forgeml"
+
+
+def test_workspace_path_is_flattened_for_a_local_store(monkeypatch) -> None:
+    """Against ./mlruns the same path would create a directory named "/Shared/forgeml"."""
+    import mlflow
+
+    from forgeml.tracking import mlflow_utils
+
+    monkeypatch.delenv("DATABRICKS_RUNTIME_VERSION", raising=False)
+    monkeypatch.setattr(mlflow, "get_tracking_uri", lambda: "file:///tmp/mlruns")
+    monkeypatch.setattr(mlflow, "set_experiment", lambda name: None)
+    monkeypatch.setattr(mlflow, "set_tracking_uri", lambda uri: None)
+
+    config = load_config(CONFIG_DIR / "lora.yaml")
+    assert mlflow_utils.setup_mlflow(config) == "Shared-forgeml"

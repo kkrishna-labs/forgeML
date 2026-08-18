@@ -49,8 +49,22 @@ def _mlflow() -> Any:
 
 
 def is_databricks() -> bool:
-    """True when running inside a Databricks notebook or job."""
+    """True when running *on* Databricks compute (a notebook or job cluster)."""
     return bool(os.getenv("DATABRICKS_RUNTIME_VERSION"))
+
+
+def tracking_is_databricks() -> bool:
+    """True when the tracking *store* is a Databricks workspace.
+
+    Deliberately different from :func:`is_databricks`, and the difference is the
+    whole point: you can train on Colab or a rented GPU while logging into a
+    Databricks workspace. Compute location and tracking location are
+    independent, and conflating them mangles the experiment path — Databricks
+    requires an absolute workspace path like ``/Shared/forgeml``, so rewriting
+    it to ``Shared-forgeml`` because the GPU happens to be elsewhere gets the
+    run rejected outright.
+    """
+    return str(_mlflow().get_tracking_uri()).startswith("databricks")
 
 
 def setup_mlflow(config: ForgeConfig) -> str:
@@ -71,9 +85,11 @@ def setup_mlflow(config: ForgeConfig) -> str:
         mlflow.set_registry_uri(config.tracking.registry_uri)
 
     experiment_name = config.tracking.experiment_name
-    # A workspace path only means something on Databricks; locally it would create
-    # a directory literally named "/Shared/forgeml".
-    if not is_databricks() and experiment_name.startswith("/"):
+    # An absolute workspace path only means something to a Databricks tracking
+    # server; against a local ./mlruns store it would create a directory
+    # literally named "/Shared/forgeml". Key the decision off the *tracking
+    # store*, not off where the code happens to be running.
+    if experiment_name.startswith("/") and not tracking_is_databricks():
         experiment_name = experiment_name.strip("/").replace("/", "-")
 
     mlflow.set_experiment(experiment_name)
