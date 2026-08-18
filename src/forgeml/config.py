@@ -25,10 +25,25 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 TrainingMethod = Literal["full", "lora", "qlora"]
 ComputeDType = Literal["float32", "float16", "bfloat16"]
+
+
+class StrictModel(BaseModel):
+    """Base for every config section: reject keys we do not recognise.
+
+    Pydantic ignores unknown fields by default, which makes a mistyped override
+    a silent no-op. That is how a run gets launched with
+    ``training.use_cpu=True`` — a field this project does not have — and trains
+    for four hours under settings nobody chose, with nothing in the logs to say
+    so.
+
+    Failing loudly costs one clear error message. Failing silently costs the run.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +51,7 @@ ComputeDType = Literal["float32", "float16", "bfloat16"]
 # ---------------------------------------------------------------------------
 
 
-class ModelConfig(BaseModel):
+class ModelConfig(StrictModel):
     """Which base checkpoint we start from."""
 
     name: str = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -52,7 +67,7 @@ class ModelConfig(BaseModel):
         return self.name.split("/")[-1]
 
 
-class DeltaConfig(BaseModel):
+class DeltaConfig(StrictModel):
     """Where the medallion tables live in Unity Catalog.
 
     Free Edition workspaces expose a ``workspace`` catalog; if yours differs, this is
@@ -80,7 +95,7 @@ class DeltaConfig(BaseModel):
         return f"{self.catalog}.{schema}.{table}"
 
 
-class DataConfig(BaseModel):
+class DataConfig(StrictModel):
     """Dataset identity, cleaning thresholds and split ratios."""
 
     source: str = "databricks/databricks-dolly-15k"
@@ -117,7 +132,7 @@ class DataConfig(BaseModel):
         return self
 
 
-class LoRAConfig(BaseModel):
+class LoRAConfig(StrictModel):
     """Low-Rank Adaptation hyper-parameters.
 
     ``target_modules=None`` lets PEFT auto-detect the attention projections for the
@@ -142,7 +157,7 @@ class LoRAConfig(BaseModel):
         return self.alpha / self.r
 
 
-class QuantizationConfig(BaseModel):
+class QuantizationConfig(StrictModel):
     """bitsandbytes 4-bit / 8-bit loading options (the Q in QLoRA)."""
 
     enabled: bool = False
@@ -152,7 +167,7 @@ class QuantizationConfig(BaseModel):
     compute_dtype: ComputeDType = "bfloat16"
 
 
-class TrainingConfig(BaseModel):
+class TrainingConfig(StrictModel):
     """Optimizer / schedule / batching. Shared by all three methods."""
 
     method: TrainingMethod = "full"
@@ -190,7 +205,7 @@ class TrainingConfig(BaseModel):
         return self
 
 
-class GenerationConfig(BaseModel):
+class GenerationConfig(StrictModel):
     """Decoding settings used during evaluation and serving.
 
     Evaluation defaults to greedy (``do_sample=False``) because a metric you cannot
@@ -205,7 +220,7 @@ class GenerationConfig(BaseModel):
     repetition_penalty: float = 1.0
 
 
-class EvaluationConfig(BaseModel):
+class EvaluationConfig(StrictModel):
     """What we measure, and how many samples we measure it on."""
 
     max_eval_samples: int = Field(default=200, ge=1)
@@ -226,7 +241,7 @@ class EvaluationConfig(BaseModel):
     assumed_gpu: str = "T4-16GB"
 
 
-class SelectionConfig(BaseModel):
+class SelectionConfig(StrictModel):
     """The policy that turns a table of runs into one champion.
 
     ``weights`` are applied to *normalized* metrics (0 = worst observed, 1 = best
@@ -250,7 +265,7 @@ class SelectionConfig(BaseModel):
     tie_breaker: Literal["latency_ms", "memory_mb", "model_size_mb"] = "latency_ms"
 
 
-class TrackingConfig(BaseModel):
+class TrackingConfig(StrictModel):
     """MLflow wiring."""
 
     experiment_name: str = "/Shared/forgeml"
@@ -263,7 +278,7 @@ class TrackingConfig(BaseModel):
     tags: dict[str, str] = Field(default_factory=dict)
 
 
-class ForgeConfig(BaseModel):
+class ForgeConfig(StrictModel):
     """The whole experiment in one object."""
 
     project: str = "forgeml"

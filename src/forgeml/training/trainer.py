@@ -127,6 +127,7 @@ def run_training(
     )
 
     total_steps = _total_optimizer_steps(config, len(train_dataset))
+    _warn_if_cpu(config, total_steps)
     args = _build_training_arguments(config, output_dir, eval_dataset is not None, total_steps)
     callback = build_mlflow_callback() if log_to_mlflow else None
 
@@ -182,6 +183,59 @@ def run_training(
         result.train_loss or float("nan"),
     )
     return model, tokenizer, result
+
+
+def _warn_if_cpu(config: ForgeConfig, total_steps: int) -> None:
+    """Say up front that this is a CPU run, and roughly what it will cost.
+
+    Training a 0.5B model on CPU is on the order of minutes *per optimizer
+    step*. The Trainer's own ETA only appears after the first step completes,
+    which on CPU can itself take ten minutes — long enough to walk away
+    believing the run is fine. Two hours later you discover it needed four days.
+
+    So estimate it before the first step, from a measured rate, and name the two
+    settings that are pure waste on CPU.
+    """
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return
+    except ImportError:  # pragma: no cover
+        return
+
+    # ~10 min/step measured on Databricks serverless: 0.5B model, effective
+    # batch 16, seq_len 1024, gradient checkpointing on. Scaled crudely by the
+    # two factors that dominate — it is an order-of-magnitude signal, not a
+    # forecast, and that is all it needs to be.
+    reference_minutes_per_step = 10.0
+    scale = (config.training.effective_batch_size / 16) * (config.model.max_seq_length / 1024)
+    if not config.training.gradient_checkpointing:
+        scale *= 0.75
+    estimated_hours = total_steps * reference_minutes_per_step * max(scale, 0.05) / 60
+
+    log.warning("=" * 72)
+    log.warning("NO GPU DETECTED — training on CPU")
+    log.warning(
+        "  %d steps at roughly %.1f min/step -> approximately %.1f hours",
+        total_steps,
+        reference_minutes_per_step * max(scale, 0.05),
+        estimated_hours,
+    )
+    if config.training.gradient_checkpointing:
+        log.warning(
+            "  gradient_checkpointing is ON: it trades compute for memory, and on "
+            "CPU you have RAM but no spare compute. Turn it off (~30% faster)."
+        )
+    if config.model.max_seq_length > 512:
+        log.warning(
+            "  max_seq_length is %d: attention cost is quadratic in length. "
+            "512 covers the p95 of this corpus.",
+            config.model.max_seq_length,
+        )
+    if estimated_hours > 3:
+        log.warning("  This will not finish in a sitting. Use configs/cpu.yaml, or a GPU.")
+    log.warning("=" * 72)
 
 
 def _total_optimizer_steps(config: ForgeConfig, num_examples: int) -> int:

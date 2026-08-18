@@ -1,0 +1,62 @@
+# ---------------------------------------------------------------------------
+# CPU fallback — a reduced run that finishes, for when no GPU is available.
+#
+# READ THIS FIRST: this is not the real experiment. A 0.5B model on 4k examples
+# is roughly 80-100 hours on CPU, so this config trades away most of the
+# training to get a run that completes in about an hour and produces genuine,
+# comparable numbers on a smaller scale.
+#
+# It is honest as a demonstration and dishonest as a result: quality will be
+# well below what the same arm reaches on a GPU. Label it as such — the run_name
+# and the `compute` tag both say `cpu`, so these runs are easy to exclude from
+# the headline comparison later.
+#
+# Every reduction below is doing real work:
+#
+#   max_steps 30           496 steps -> 30. The single biggest lever.
+#   max_seq_length 512     attention is quadratic in length; p95 of this corpus
+#                          is 554 tokens, so 512 truncates the tail only
+#   gradient_checkpointing recomputes activations to save memory. On CPU you
+#     = false              have RAM and no spare compute, so it is ~30% pure loss
+#   effective batch 8      smaller steps finish sooner; fewer total examples seen
+#   eval_steps null        skip mid-training evaluation entirely
+#   max_eval_samples 30    generation on CPU is slow — this is the second
+#                          biggest cost after training itself
+# ---------------------------------------------------------------------------
+extends: lora.yaml
+
+model:
+  max_seq_length: 512
+  dtype: float32          # CPU has no bf16 fast path; float32 is the honest choice
+
+training:
+  epochs: 1
+  max_steps: 30
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 4      # effective batch 8
+  gradient_checkpointing: false
+  eval_steps: null
+  logging_steps: 1                    # 30 steps total — log every one
+  bf16: false
+  fp16: false
+
+evaluation:
+  max_eval_samples: 30
+  compute_perplexity: true
+  latency_warmup_runs: 1
+  latency_measured_runs: 5
+  latency_new_tokens: 32
+  generation:
+    max_new_tokens: 96
+
+tracking:
+  # Name it explicitly. run_slug() derives from model/method/rank/dataset, none
+  # of which change here, so a CPU reduced run and a real GPU run would appear
+  # under the same name in the MLflow run list. Two runs you cannot tell apart
+  # is how a reduced number ends up quoted as a real one.
+  run_name: lora-r8-CPU-REDUCED
+  tags:
+    arm: lora
+    compute: cpu
+    reduced_run: "true"
