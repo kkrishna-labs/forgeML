@@ -231,3 +231,26 @@ def test_workspace_path_is_flattened_for_a_local_store(monkeypatch) -> None:
 
     config = load_config(CONFIG_DIR / "lora.yaml")
     assert mlflow_utils.setup_mlflow(config) == "Shared-forgeml"
+
+
+def test_torchao_version_constraint_is_pinned() -> None:
+    """torchao must be pinned to >=0.16.0 to avoid version conflicts with bitsandbytes.
+
+    This is a regression test: if someone removes the constraint from pyproject.toml,
+    Colab installs will fail with ImportError about torchao version.
+    """
+    from pathlib import Path
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    content = pyproject.read_text(encoding="utf-8")
+
+    # Find the train dependencies section and check for torchao constraint.
+    # The section is between train = [ and the closing ].
+    train_section_start = content.find('train = [')
+    train_section_end = content.find(']', train_section_start)
+    train_section = content[train_section_start:train_section_end]
+
+    assert "torchao>=0.16" in train_section, (
+        "torchao>=0.16.0 must be pinned in pyproject.toml [project.optional-dependencies] "
+        "train to avoid version conflicts on Colab"
+    )

@@ -46,6 +46,7 @@ train = [
   "accelerate>=0.33",
   "peft>=0.12",
   "trl>=0.9",
+  "torchao>=0.16.0",
   "bitsandbytes>=0.43; platform_system != 'Darwin'",
   "sentencepiece>=0.2",
   "evaluate>=0.4",
